@@ -74,7 +74,7 @@ class Request:
 if __name__ == '__main__':
     import time
     start = time.monotonic()
-    req = Request('10.06.2022')
-    print(req.total_list)
+    req = Request('14.06.2022')
+    print(len(req.total_list))
     finish = time.monotonic() - start
     print(finish)
