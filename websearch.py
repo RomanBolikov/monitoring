@@ -53,7 +53,7 @@ class Request:
         try:
             res = requests.get(
                 'http://publication.pravo.gov.ru/api/Document/Get',
-                params=parameters, timeout=1
+                params=parameters, timeout=(0.5, 1)
             )
         except (
             requests.exceptions.Timeout, requests.exceptions.ConnectionError

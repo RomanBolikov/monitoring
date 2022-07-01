@@ -24,24 +24,9 @@ class App(tk.Tk):
         self.date = None
         self.path = None
         self.opened_docs = 0
-        self.check_connection()
         self.prompt_date()
 
     # #########################################################################
-
-    # проверка соединения с сервером
-    def check_connection(self):
-        try:
-            requests.get('http://publication.pravo.gov.ru', timeout=1)
-        except (
-            requests.exceptions.Timeout, requests.exceptions.ConnectionError
-        ):
-            if mb.askretrycancel(
-                'Ошибка', 'Сервер недоступен, повторить запрос?'
-            ):
-                self.check_connection()
-            else:
-                self.destroy()
 
     # всплывающее окно с запросом даты
     def prompt_date(self):
@@ -50,34 +35,33 @@ class App(tk.Tk):
             self.deletedir()
             self.date = npa_date_entry.get()
             self.docs = Request(self.date)
-            if self.docs.total_list is None:
-                mb.showerror(
-                    'Ошибка',
-                    'Возникла ошибка при загрузке документов с сервера'
+            while self.docs.total_list is None:
+                if mb.askretrycancel(
+                    'Ошибка', 'Сервер недоступен, повторить запрос?'
+                ):
+                    self.docs = Request(self.date)
+                else:
+                    return self.destroy()
+            self.docs_num = len(self.docs.total_list)
+            if self.docs_num == 0:
+                mb.showinfo(
+                    message=f'Документы за {self.date} не опубликованы!'
                 )
                 prompt.destroy()
                 self.prompt_date()
             else:
-                self.docs_num = len(self.docs.total_list)
-                if self.docs_num == 0:
-                    mb.showinfo(
-                        message=f'Документы за {self.date} не опубликованы!'
-                    )
-                    prompt.destroy()
-                    self.prompt_date()
-                else:
-                    self.next_btn['state'] = (
-                        'disabled' if self.docs_num == 1 else '!disabled'
-                    )
-                    self.cur_choice = 1
-                    self.prev_btn['state'] = 'disabled'
-                    self.path = Path(
-                        Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
-                    prompt.destroy()
-                    self.total_label_text.set(
-                        f'Всего документов за {self.date}: {self.docs_num}'
-                    )
-                    self.show_doc()
+                self.next_btn['state'] = (
+                    'disabled' if self.docs_num == 1 else '!disabled'
+                )
+                self.cur_choice = 1
+                self.prev_btn['state'] = 'disabled'
+                self.path = Path(
+                    Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
+                prompt.destroy()
+                self.total_label_text.set(
+                    f'Всего документов за {self.date}: {self.docs_num}'
+                )
+                self.show_doc()
 
         # описание виджетов всплывающего окна
         prompt = tk.Toplevel()
@@ -260,18 +244,27 @@ class App(tk.Tk):
 
     # загрузка файла PDF (кнопка "Загрузить PDF")
     def get_pdf(self):
-        self.load_pdf['state'] = 'disabled'
-        self.delete_pdf['state'] = '!disabled'
-        self.form_chckbtn['state'] = '!disabled'
         reqs = self.pdf_requisites(self.docs.total_list[self.cur_choice - 1])
         self.path.mkdir(exist_ok=True)
         savename = f'{reqs[1]} {reqs[2]}.pdf'
-        with open(Path(self.path, savename), 'wb') as pdf:
+        pdf = open(Path(self.path, savename), 'wb')
+        try:
             url = requests.get(
-                f'http://publication.pravo.gov.ru/File/GetFile/\
-{reqs[0]}?type=pdf'
+                f'http://publication.pravo.gov.ru/File/GetFile/{reqs[0]}\
+?type=pdf', timeout=(3, 15)
             )
-            pdf.write(url.content)
+        except (
+            requests.exceptions.Timeout, requests.exceptions.ConnectionError
+        ):
+            pdf.close()
+            return mb.showerror(
+                'Ошибка загрузки', 'Плохое соединение с сервером'
+            )
+        pdf.write(url.content)
+        pdf.close()
+        self.load_pdf['state'] = 'disabled'
+        self.delete_pdf['state'] = '!disabled'
+        self.form_chckbtn['state'] = '!disabled'
         subprocess.Popen([Path(self.path, savename)], shell=True)
         self.opened_docs += 1
         self.opened_docs_label.configure(
