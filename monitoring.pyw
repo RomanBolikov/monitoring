@@ -31,15 +31,17 @@ class App(tk.Tk):
 
     # проверка соединения с сервером
     def check_connection(self):
-        def no_connection():
-            mb.showerror('Ошибка', 'Сервер недоступен, попробуйте позднее')
-            self.destroy()
         try:
             requests.get('http://publication.pravo.gov.ru', timeout=1)
         except (
             requests.exceptions.Timeout, requests.exceptions.ConnectionError
         ):
-            no_connection()
+            if mb.askretrycancel(
+                'Ошибка', 'Сервер недоступен, повторить запрос?'
+            ):
+                self.check_connection()
+            else:
+                self.destroy()
 
     # всплывающее окно с запросом даты
     def prompt_date(self):
