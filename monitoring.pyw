@@ -55,27 +55,29 @@ class App(tk.Tk):
                     'Ошибка',
                     'Возникла ошибка при загрузке документов с сервера'
                 )
-                self.destroy()
-            self.docs_num = len(self.docs.total_list)
-            if self.docs_num == 0:
-                mb.showinfo(
-                    message=f'Документы за {self.date} не опубликованы!'
-                )
                 prompt.destroy()
                 self.prompt_date()
             else:
-                self.next_btn['state'] = (
-                    'disabled' if self.docs_num == 1 else '!disabled'
-                )
-                self.cur_choice = 1
-                self.prev_btn['state'] = 'disabled'
-                self.path = Path(
-                    Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
-                prompt.destroy()
-                self.total_label_text.set(
-                    f'Всего документов за {self.date}: {self.docs_num}'
-                )
-                self.show_doc()
+                self.docs_num = len(self.docs.total_list)
+                if self.docs_num == 0:
+                    mb.showinfo(
+                        message=f'Документы за {self.date} не опубликованы!'
+                    )
+                    prompt.destroy()
+                    self.prompt_date()
+                else:
+                    self.next_btn['state'] = (
+                        'disabled' if self.docs_num == 1 else '!disabled'
+                    )
+                    self.cur_choice = 1
+                    self.prev_btn['state'] = 'disabled'
+                    self.path = Path(
+                        Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
+                    prompt.destroy()
+                    self.total_label_text.set(
+                        f'Всего документов за {self.date}: {self.docs_num}'
+                    )
+                    self.show_doc()
 
         # описание виджетов всплывающего окна
         prompt = tk.Toplevel()
