@@ -35,12 +35,10 @@ class App(tk.Tk):
             mb.showerror('Ошибка', 'Сервер недоступен, попробуйте позднее')
             self.destroy()
         try:
-            res = requests.get('http://publication.pravo.gov.ru', timeout=1)
+            requests.get('http://publication.pravo.gov.ru', timeout=1)
         except (
-            requests.exceptions.Timeout or requests.exceptions.ConnectionError
+            requests.exceptions.Timeout, requests.exceptions.ConnectionError
         ):
-            no_connection()
-        if not res.ok:
             no_connection()
 
     # всплывающее окно с запросом даты

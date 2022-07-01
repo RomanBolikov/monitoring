@@ -56,7 +56,7 @@ class Request:
                 params=parameters, timeout=1
             )
         except (
-            requests.exceptions.Timeout or requests.exceptions.ConnectionError
+            requests.exceptions.Timeout, requests.exceptions.ConnectionError
         ):
             return -1
         return res.json()['Documents']
@@ -74,7 +74,7 @@ class Request:
 if __name__ == '__main__':
     import time
     start = time.monotonic()
-    req = Request('14.06.2022')
+    req = Request('30.06.2022')
     print(len(req.total_list))
     finish = time.monotonic() - start
     print(finish)
