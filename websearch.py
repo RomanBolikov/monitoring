@@ -50,24 +50,24 @@ class Request:
         self.total_list = self.output()
 
     def response(self, parameters):
-        res = requests.get(
-            'http://publication.pravo.gov.ru/api/Document/Get',
-            params=parameters
-        )
-        # try:
-        #     res.raise_for_status()
-        # except Exception as exc:
-        #     return mb.showerror(
-        #         'Ошибка подключения', f'Ошибка загрузки: {exc}'
-        #     )
+        try:
+            res = requests.get(
+                'http://publication.pravo.gov.ru/api/Document/Get',
+                params=parameters, timeout=1
+            )
+        except (
+            requests.exceptions.Timeout or requests.exceptions.ConnectionError
+        ):
+            return -1
         return res.json()['Documents']
 
     def output(self):
         out = []
         with ThreadPoolExecutor(max_workers=6) as exec:
             for result in exec.map(self.response, self.params):
+                if result == -1:
+                    return None
                 out.extend(result)
-            exec.shutdown()
             return out
 
 

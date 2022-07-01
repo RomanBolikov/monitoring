@@ -22,25 +22,46 @@ class App(tk.Tk):
         self.protocol('WM_DELETE_WINDOW', self.quit)
         self.initUI()
         self.date = None
-        self.prompt_date()
+        self.path = None
         self.opened_docs = 0
+        self.check_connection()
+        self.prompt_date()
 
     # #########################################################################
+
+    # проверка соединения с сервером
+    def check_connection(self):
+        def no_connection():
+            mb.showerror('Ошибка', 'Сервер недоступен, попробуйте позднее')
+            self.destroy()
+        try:
+            res = requests.get('http://publication.pravo.gov.ru', timeout=1)
+        except (
+            requests.exceptions.Timeout or requests.exceptions.ConnectionError
+        ):
+            no_connection()
+        if not res.ok:
+            no_connection()
+
     # всплывающее окно с запросом даты
     def prompt_date(self):
 
         def choose_date():
-            if self.date is not None:
-                self.deletedir()
+            self.deletedir()
             self.date = npa_date_entry.get()
             self.docs = Request(self.date)
+            if self.docs.total_list is None:
+                mb.showerror(
+                    'Ошибка',
+                    'Возникла ошибка при загрузке документов с сервера'
+                )
+                self.destroy()
             self.docs_num = len(self.docs.total_list)
             if self.docs_num == 0:
                 mb.showinfo(
                     message=f'Документы за {self.date} не опубликованы!'
                 )
                 prompt.destroy()
-                self.date = None
                 self.prompt_date()
             else:
                 self.next_btn['state'] = (
@@ -249,7 +270,6 @@ class App(tk.Tk):
 {reqs[0]}?type=pdf'
             )
             pdf.write(url.content)
-            pdf.close()
         subprocess.Popen([Path(self.path, savename)], shell=True)
         self.opened_docs += 1
         self.opened_docs_label.configure(
@@ -359,7 +379,7 @@ class App(tk.Tk):
     # удаление пустого каталога при закрытии окна программы или смене даты
     def deletedir(self):
         try:
-            if not any(self.path.iterdir()):
+            if self.path and not any(self.path.iterdir()):
                 self.path.rmdir()
         except FileNotFoundError:
             pass
@@ -368,6 +388,7 @@ class App(tk.Tk):
     def quit(self):
         self.deletedir()
         self.destroy()
+
 
 ##############################################################################
 
