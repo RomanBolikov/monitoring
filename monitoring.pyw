@@ -24,6 +24,7 @@ class App(tk.Tk):
         self.date = None
         self.path = None
         self.opened_docs = 0
+        self.readerpath = Path(r'C:\Program Files\SumatraPDF\SumatraPDF.exe')
         self.prompt_date()
 
     # #########################################################################
@@ -265,7 +266,9 @@ class App(tk.Tk):
         self.load_pdf['state'] = 'disabled'
         self.delete_pdf['state'] = '!disabled'
         self.form_chckbtn['state'] = '!disabled'
-        subprocess.Popen([Path(self.path, savename)], shell=True)
+        self.opened_pdf = subprocess.Popen(
+            args=[self.readerpath, Path(self.path, savename)]
+        )
         self.opened_docs += 1
         self.opened_docs_label.configure(
             text=f'Просмотрено документов: {self.opened_docs}'
@@ -273,6 +276,7 @@ class App(tk.Tk):
 
     # удаление файла PDF (кнопка "Удалить PDF")
     def delete_pdf(self):
+        self.opened_pdf.kill()
         reqs = self.pdf_requisites(self.docs.total_list[self.cur_choice - 1])
         deletename = f'{reqs[1]} {reqs[2]}.pdf'
         deletepath = Path(self.path, deletename)
