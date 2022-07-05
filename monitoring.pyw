@@ -301,10 +301,10 @@ class App(tk.Tk):
                 pdf = PdfFileReader(file_in)
                 pages = str(pdf.getNumPages())
                 self.appendix_entry.insert(0, pages)
-                file_in.close()
             self.delete_pdf.grid_forget()
             self.call_form_doc.grid(row=4, column=2, padx=5, pady=(10, 15))
         elif self.form_var.get() == 0:
+            self.addr_listbox.selection_clear(0, tk.END)
             self.addr_listbox['state'] = 'disabled'
             self.appendix_entry.delete(0, tk.END)
             self.appendix_entry['state'] = 'disabled'
