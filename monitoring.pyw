@@ -127,7 +127,7 @@ class App(tk.Tk):
 
         # кнопка "Загрузить PDF"
         self.load_pdf = ttk.Button(
-            mainframe, text='Загрузить PDF', command=self.get_pdf,
+            mainframe, text='              ', command=self.get_pdf,
             style='My.TButton'
         )
         self.load_pdf.grid(row=4, column=0, padx=5, pady=(10, 15))
@@ -204,8 +204,11 @@ class App(tk.Tk):
         )
         cur_doc = self.docs.total_list[self.cur_choice - 1]
         text = cur_doc['ComplexName'].replace('\n', '')
+        file_length = cur_doc['PdfFileLength'] // 1024
         self.npa_title.set(textwrap.fill(text))
-        self.load_pdf['state'] = '!disabled'
+        self.load_pdf.configure(
+            state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
+        )
         self.delete_pdf['state'] = 'disabled'
         self.form_var.set(0)
         self.form_chckbtn['state'] = 'disabled'
