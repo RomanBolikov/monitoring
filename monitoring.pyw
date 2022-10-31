@@ -36,14 +36,15 @@ class App(tk.Tk):
             self.deletedir()
             self.date = npa_date_entry.get()
             self.docs = Request(self.date)
-            while self.docs.total_list is None:
+            self.total_list = self.docs.total_list()
+            while self.total_list is None:
                 if mb.askretrycancel(
                     'Ошибка', 'Сервер недоступен, повторить запрос?'
                 ):
-                    self.docs = Request(self.date)
+                    self.total_list = self.docs.total_list()
                 else:
                     return self.destroy()
-            self.docs_num = len(self.docs.total_list)
+            self.docs_num = len(self.total_list)
             if self.docs_num == 0:
                 mb.showinfo(
                     message=f'Документы за {self.date} не опубликованы!'
@@ -202,7 +203,7 @@ class App(tk.Tk):
         self.current_label_text.set(
             f'Документ {self.cur_choice} из {self.docs_num}:'
         )
-        cur_doc = self.docs.total_list[self.cur_choice - 1]
+        cur_doc = self.total_list[self.cur_choice - 1]
         text = cur_doc['ComplexName'].replace('\n', '')
         file_length = cur_doc['PdfFileLength'] // 1024
         self.npa_title.set(textwrap.fill(text))
@@ -248,7 +249,7 @@ class App(tk.Tk):
 
     # загрузка файла PDF (кнопка "Загрузить PDF")
     def get_pdf(self):
-        reqs = self.pdf_requisites(self.docs.total_list[self.cur_choice - 1])
+        reqs = self.pdf_requisites(self.total_list[self.cur_choice - 1])
         self.path.mkdir(exist_ok=True)
         savename = f'{reqs[1]} {reqs[2]}.pdf'
         pdf = open(Path(self.path, savename), 'wb')
@@ -280,7 +281,7 @@ class App(tk.Tk):
     # удаление файла PDF (кнопка "Удалить PDF")
     def delete_pdf(self):
         self.opened_pdf.kill()
-        reqs = self.pdf_requisites(self.docs.total_list[self.cur_choice - 1])
+        reqs = self.pdf_requisites(self.total_list[self.cur_choice - 1])
         deletename = f'{reqs[1]} {reqs[2]}.pdf'
         deletepath = Path(self.path, deletename)
         deletepath.unlink(missing_ok=True)
@@ -296,7 +297,7 @@ class App(tk.Tk):
             self.addr_listbox['state'] = 'normal'
             self.appendix_entry['state'] = '!disabled'
             reqs = self.pdf_requisites(
-                self.docs.total_list[self.cur_choice - 1]
+                self.total_list[self.cur_choice - 1]
             )
             openname = f'{reqs[1]} {reqs[2]}.pdf'
             openpath = Path(self.path, openname)
@@ -340,7 +341,7 @@ class App(tk.Tk):
             return mb.showerror(
                 'Ошибка', 'Укажите количество листов приложения'
             )
-        cur_doc = self.docs.total_list[self.cur_choice - 1]
+        cur_doc = self.total_list[self.cur_choice - 1]
         if cur_doc['DocumentTypeName'] == 'Федеральный закон':
             doc_type = 'Федеральный закон'
         elif cur_doc['DocumentTypeName'] == 'Указ':

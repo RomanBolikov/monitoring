@@ -47,8 +47,6 @@ class Request:
             ksrf_params, minstroy_params
         )
 
-        self.total_list = self.output()
-
     def response(self, parameters):
         try:
             res = requests.get(
@@ -61,7 +59,7 @@ class Request:
             return -1
         return res.json()['Documents']
 
-    def output(self):
+    def total_list(self):
         out = []
         with ThreadPoolExecutor(max_workers=6) as exec:
             for result in exec.map(self.response, self.params):
