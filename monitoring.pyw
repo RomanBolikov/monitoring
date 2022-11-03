@@ -9,6 +9,7 @@ import form_doc
 import requests
 import subprocess
 import textwrap
+import threading
 
 
 class App(tk.Tk):
@@ -128,7 +129,9 @@ class App(tk.Tk):
 
         # кнопка "Загрузить PDF"
         self.load_pdf = ttk.Button(
-            mainframe, text='              ', command=self.get_pdf,
+            mainframe, text='              ',
+            command=lambda: threading.Thread(
+                target=self.get_pdf, daemon=True).start(),
             style='My.TButton'
         )
         self.load_pdf.grid(row=4, column=0, padx=5, pady=(10, 15))
