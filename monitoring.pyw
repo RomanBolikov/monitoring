@@ -35,6 +35,7 @@ class App(tk.Tk):
 
         def choose_date():
             self.deletedir()
+            self.total_list = None
             self.date = npa_date_entry.get()
             self.docs = Request(self.date)
             self.total_list = self.docs.total_list()
