@@ -9,6 +9,10 @@ class Request:
             'PubDateType': 'single', 'PubDateSingle': date, 'RangeSize': 100
         }
 
+        fkz_params = common_params | {
+            'SelectedDocumentType': '93273da3-3133-4acf-96c2-4adc1ae70e19'
+            }
+
         fz_params = common_params | {
             'SelectedDocumentType': '82a8bf1c-3bc7-47ed-827f-7affd43a7f27'
             }
@@ -43,7 +47,7 @@ class Request:
             }
 
         self.params = (
-            fz_params, president_params, pprf_params, rprf_params,
+            fkz_params, fz_params, president_params, pprf_params, rprf_params,
             ksrf_params, minstroy_params
         )
 
@@ -61,7 +65,7 @@ class Request:
 
     def total_list(self):
         out = []
-        with ThreadPoolExecutor(max_workers=6) as exec:
+        with ThreadPoolExecutor(max_workers=7) as exec:
             for result in exec.map(self.response, self.params):
                 if result == -1:
                     return None
@@ -70,9 +74,8 @@ class Request:
 
 
 if __name__ == '__main__':
-    import time
-    start = time.monotonic()
-    req = Request('30.06.2022')
-    print(len(req.total_list))
-    finish = time.monotonic() - start
-    print(finish)
+    req = Request('19.12.2022')
+    res = req.total_list()
+    while res is None:
+        res = req.total_list()
+    print(res)
