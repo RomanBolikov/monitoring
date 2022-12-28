@@ -211,18 +211,26 @@ class App(tk.Tk):
         text = cur_doc['ComplexName'].replace('\n', '')
         file_length = cur_doc['PdfFileLength'] // 1024
         self.npa_title.set(textwrap.fill(text))
-        self.load_pdf.configure(
-            state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
-        )
-        self.delete_pdf['state'] = 'disabled'
-        self.form_var.set(0)
-        self.form_chckbtn['state'] = 'disabled'
         self.appendix_entry.delete(0, tk.END)
         self.appendix_entry['state'] = 'disabled'
         if self.call_form_doc.winfo_ismapped():
             self.call_form_doc.grid_forget()
             self.delete_pdf.grid(row=4, column=2, padx=5, pady=(10, 15))
         self.addr_listbox.selection_clear(0, tk.END)
+        if cur_doc.get('pdf_loaded') is None or not cur_doc.get('pdf_loaded'):
+            self.load_pdf.configure(
+                state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
+            )
+            self.delete_pdf['state'] = 'disabled'
+            self.form_var.set(0)
+            self.form_chckbtn['state'] = 'disabled'
+        else:
+            self.load_pdf.configure(
+                state='disabled', text=f'Документ загружен\n({file_length} Кб)'
+            )
+            self.delete_pdf['state'] = '!disabled'
+            self.form_var.set(0)
+            self.form_chckbtn['state'] = '!disabled'
 
     # формирование реквизитов файла PDF
     def pdf_requisites(self, cur_doc):
@@ -253,7 +261,9 @@ class App(tk.Tk):
 
     # загрузка файла PDF (кнопка "Загрузить PDF")
     def get_pdf(self):
-        reqs = self.pdf_requisites(self.total_list[self.cur_choice - 1])
+        cur_doc = self.total_list[self.cur_choice - 1]
+        reqs = self.pdf_requisites(cur_doc)
+        file_length = cur_doc['PdfFileLength'] // 1024
         self.path.mkdir(exist_ok=True)
         savename = f'{reqs[1]} {reqs[2]}.pdf'
         pdf = open(Path(self.path, savename), 'wb')
@@ -271,8 +281,11 @@ class App(tk.Tk):
             )
         pdf.write(url.content)
         pdf.close()
-        self.load_pdf['state'] = 'disabled'
+        self.load_pdf.configure(
+            text=f'Документ загружен\n({file_length} Кб)', state='disabled'
+        )
         self.delete_pdf['state'] = '!disabled'
+        self.total_list[self.cur_choice - 1]['pdf_loaded'] = True
         self.form_chckbtn['state'] = '!disabled'
         self.opened_pdf = subprocess.Popen(
             args=[self.readerpath, Path(self.path, savename)]
@@ -285,11 +298,16 @@ class App(tk.Tk):
     # удаление файла PDF (кнопка "Удалить PDF")
     def delete_pdf(self):
         self.opened_pdf.kill()
-        reqs = self.pdf_requisites(self.total_list[self.cur_choice - 1])
+        cur_doc = self.total_list[self.cur_choice - 1]
+        reqs = self.pdf_requisites(cur_doc)
         deletename = f'{reqs[1]} {reqs[2]}.pdf'
         deletepath = Path(self.path, deletename)
         deletepath.unlink(missing_ok=True)
-        self.load_pdf['state'] = '!disabled'
+        self.total_list[self.cur_choice - 1]['pdf_loaded'] = False
+        file_length = cur_doc['PdfFileLength'] // 1024
+        self.load_pdf.configure(
+            state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
+        )
         self.delete_pdf['state'] = 'disabled'
         self.form_chckbtn['state'] = 'disabled'
         self.appendix_entry['state'] = 'disabled'
