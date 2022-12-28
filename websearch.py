@@ -40,6 +40,12 @@ class Request:
             '72b9c96e-9091-4b4e-b5eb-113a8432d2cd'
             }
 
+        minfin_params = common_params | {
+            'SelectedSignatoryAuthorityId':
+            'd9083206-f107-40ab-bdb3-92ffd465ecfe',
+            'SelectedDocumentType': '2dddb344-d3e2-4785-a899-7aa12bd47b6f'
+        }
+
         minstroy_params = common_params | {
             'SelectedSignatoryAuthorityId':
             'efa6da4b-4c1a-4fa8-8caf-860c17b205fd',
@@ -48,7 +54,7 @@ class Request:
 
         self.params = (
             fkz_params, fz_params, president_params, pprf_params, rprf_params,
-            ksrf_params, minstroy_params
+            ksrf_params, minfin_params, minstroy_params
         )
 
     def response(self, parameters):
@@ -65,7 +71,7 @@ class Request:
 
     def total_list(self):
         out = []
-        with ThreadPoolExecutor(max_workers=7) as exec:
+        with ThreadPoolExecutor(max_workers=8) as exec:
             for result in exec.map(self.response, self.params):
                 if result == -1:
                     return None

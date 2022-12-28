@@ -217,26 +217,27 @@ class App(tk.Tk):
             self.call_form_doc.grid_forget()
             self.delete_pdf.grid(row=4, column=2, padx=5, pady=(10, 15))
         self.addr_listbox.selection_clear(0, tk.END)
+        self.form_var.set(0)
         if cur_doc.get('pdf_loaded') is None or not cur_doc.get('pdf_loaded'):
             self.load_pdf.configure(
                 state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
             )
             self.delete_pdf['state'] = 'disabled'
-            self.form_var.set(0)
             self.form_chckbtn['state'] = 'disabled'
         else:
             self.load_pdf.configure(
                 state='disabled', text=f'Документ загружен\n({file_length} Кб)'
             )
             self.delete_pdf['state'] = '!disabled'
-            self.form_var.set(0)
             self.form_chckbtn['state'] = '!disabled'
 
     # формирование реквизитов файла PDF
     def pdf_requisites(self, cur_doc):
         eonum = cur_doc['EoNumber']
         doc_num = cur_doc['Number']
-        if cur_doc['DocumentTypeName'] == 'Федеральный закон':
+        if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
+            doc_type = 'ФКЗ'
+        elif cur_doc['DocumentTypeName'] == 'Федеральный закон':
             doc_type = 'ФЗ'
         elif cur_doc['DocumentTypeName'] == 'Указ':
             doc_type = 'Указ'
@@ -254,9 +255,13 @@ class App(tk.Tk):
                 doc_type = 'РПРФ'
             else:
                 doc_type = 'Опр. КС РФ'
-        else:
+        if cur_doc['SignatoryAuthorityName'] == 'Министерство строительства и \
+жилищно-коммунального хозяйства Российской Федерации':
             doc_type = 'Приказ Минстроя'
             doc_num = doc_num[:-3]+'_пр'
+        elif cur_doc['SignatoryAuthorityName'] == 'Министерство финансов \
+Российской Федерации':
+            doc_type = 'Приказ Минфина'
         return (eonum, doc_type, doc_num)
 
     # загрузка файла PDF (кнопка "Загрузить PDF")
@@ -364,7 +369,9 @@ class App(tk.Tk):
                 'Ошибка', 'Укажите количество листов приложения'
             )
         cur_doc = self.total_list[self.cur_choice - 1]
-        if cur_doc['DocumentTypeName'] == 'Федеральный закон':
+        if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
+            doc_type = 'Федеральный конституционный закон'
+        elif cur_doc['DocumentTypeName'] == 'Федеральный закон':
             doc_type = 'Федеральный закон'
         elif cur_doc['DocumentTypeName'] == 'Указ':
             doc_type = 'Указ Президента Российской Федерации'
@@ -382,9 +389,14 @@ class App(tk.Tk):
             else:
                 doc_type = 'Определение Конституционного Суда Российской \
 Федерации'
-        else:
+        elif cur_doc['SignatoryAuthorityName'] == 'Министерство строительства \
+и жилищно-коммунального хозяйства Российской Федерации':
             doc_type = 'приказ Министерства строительства и \
 жилищно-коммунального хозяйства Российской Федерации'
+        elif cur_doc['SignatoryAuthorityName'] == 'Министерство финансов \
+Российской Федерации':
+            doc_type = 'приказ Министерства финансов \
+Российской Федерации'
         doc_title = cur_doc['Name']
         doc_date = cur_doc['DocumentDate']
         doc_date_frmtd = f'{doc_date[8:10]}.{doc_date[5:7]}.{doc_date[:4]}'
