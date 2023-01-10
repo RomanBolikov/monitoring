@@ -10,6 +10,7 @@ import requests
 import subprocess
 import textwrap
 import threading
+from atomicinteger import AtomicInteger
 
 
 class App(tk.Tk):
@@ -24,8 +25,9 @@ class App(tk.Tk):
         self.initUI()
         self.date = None
         self.path = None
-        self.opened_docs = 0
+        self.opened_docs = AtomicInteger(0)
         self.readerpath = Path(r'C:\Program Files\SumatraPDF\SumatraPDF.exe')
+        self.thread_count = AtomicInteger(0)
         self.prompt_date()
 
     # #########################################################################
@@ -61,13 +63,21 @@ class App(tk.Tk):
                 self.prev_btn['state'] = 'disabled'
                 self.path = Path(
                     Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
+                self.path.mkdir(exist_ok=True)
                 prompt.destroy()
                 self.total_label_text.set(
                     f'Всего документов за {self.date}: {self.docs_num}'
                 )
                 self.show_doc()
 
-        # описание виджетов всплывающего окна
+        # нельзя сменить дату, пока не завершены все загрузки
+        if self.thread_count.value > 0:
+            return mb.showwarning(
+                'Ошибка',
+                'Нельзя изменить дату, пока не завершены все загрузки'
+            )
+
+        # загрузка виджетов всплывающего окна
         prompt = tk.Toplevel()
         prompt.attributes('-topmost', 'true')
         x = self.winfo_x()
@@ -130,9 +140,7 @@ class App(tk.Tk):
 
         # кнопка "Загрузить PDF"
         self.load_pdf = ttk.Button(
-            mainframe, text='              ',
-            command=lambda: threading.Thread(
-                target=self.get_pdf, daemon=True).start(),
+            mainframe, text='              ', command=self.start_thread,
             style='My.TButton'
         )
         self.load_pdf.grid(row=4, column=0, padx=5, pady=(10, 15))
@@ -264,12 +272,18 @@ class App(tk.Tk):
             doc_type = 'Приказ Минфина'
         return (eonum, doc_type, doc_num)
 
-    # загрузка файла PDF (кнопка "Загрузить PDF")
+    # старт нового потока (кнопка "Загрузить PDF")
+    def start_thread(self):
+        self.load_pdf.configure(state='disabled')
+        threading.Thread(target=self.get_pdf, daemon=True).start()
+        self.thread_count.increment_and_get()
+
+    # загрузка файла PDF
     def get_pdf(self):
-        cur_doc = self.total_list[self.cur_choice - 1]
+        cur_number = self.cur_choice - 1
+        cur_doc = self.total_list[cur_number]
         reqs = self.pdf_requisites(cur_doc)
         file_length = cur_doc['PdfFileLength'] // 1024
-        self.path.mkdir(exist_ok=True)
         savename = f'{reqs[1]} {reqs[2]}.pdf'
         pdf = open(Path(self.path, savename), 'wb')
         try:
@@ -281,34 +295,36 @@ class App(tk.Tk):
             requests.exceptions.Timeout, requests.exceptions.ConnectionError
         ):
             pdf.close()
+            self.thread_count.decrement_and_get()
             return mb.showerror(
                 'Ошибка загрузки', 'Плохое соединение с сервером'
             )
         pdf.write(url.content)
         pdf.close()
-        self.load_pdf.configure(
-            text=f'Документ загружен\n({file_length} Кб)', state='disabled'
-        )
-        self.delete_pdf['state'] = '!disabled'
-        self.total_list[self.cur_choice - 1]['pdf_loaded'] = True
-        self.form_chckbtn['state'] = '!disabled'
-        self.opened_pdf = subprocess.Popen(
-            args=[self.readerpath, Path(self.path, savename)]
-        )
-        self.opened_docs += 1
-        self.opened_docs_label.configure(
-            text=f'Просмотрено документов: {self.opened_docs}'
-        )
+        if cur_number == self.cur_choice - 1:
+            self.load_pdf.configure(
+                text=f'Документ загружен\n({file_length} Кб)', state='disabled'
+            )
+            self.delete_pdf['state'] = '!disabled'
+            self.form_chckbtn['state'] = '!disabled'
+        if self.total_list[cur_number].get('pdf_loaded') is None:
+            self.opened_docs.increment_and_get()
+            self.opened_docs_label.configure(
+                text=f'Просмотрено документов: {self.opened_docs.value}'
+            )
+        self.total_list[cur_number]['pdf_loaded'] = True
+        subprocess.Popen(args=[self.readerpath, Path(self.path, savename)])
+        self.thread_count.decrement_and_get()
 
     # удаление файла PDF (кнопка "Удалить PDF")
     def delete_pdf(self):
-        self.opened_pdf.kill()
-        cur_doc = self.total_list[self.cur_choice - 1]
+        cur_number = self.cur_choice - 1
+        cur_doc = self.total_list[cur_number]
         reqs = self.pdf_requisites(cur_doc)
         deletename = f'{reqs[1]} {reqs[2]}.pdf'
         deletepath = Path(self.path, deletename)
         deletepath.unlink(missing_ok=True)
-        self.total_list[self.cur_choice - 1]['pdf_loaded'] = False
+        self.total_list[cur_number]['pdf_loaded'] = False
         file_length = cur_doc['PdfFileLength'] // 1024
         self.load_pdf.configure(
             state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
@@ -342,7 +358,7 @@ class App(tk.Tk):
             self.call_form_doc.grid_forget()
             self.delete_pdf.grid(row=4, column=2, padx=5, pady=(10, 15))
 
-    # отображение следующего документа
+    # отображение предыдущего документа
     def prev_doc(self):
         self.cur_choice -= 1
         if self.cur_choice == 1:
@@ -351,12 +367,12 @@ class App(tk.Tk):
             self.next_btn['state'] = '!disabled'
         self.show_doc()
 
-    # отображение предыдущего документа
+    # отображение следующего документа
     def next_doc(self):
         self.cur_choice += 1
         if self.cur_choice == 2:
             self.prev_btn['state'] = '!disabled'
-        elif self.cur_choice == self.docs_num:
+        if self.cur_choice == self.docs_num:
             self.next_btn['state'] = 'disabled'
         self.show_doc()
 
@@ -368,7 +384,8 @@ class App(tk.Tk):
             return mb.showerror(
                 'Ошибка', 'Укажите количество листов приложения'
             )
-        cur_doc = self.total_list[self.cur_choice - 1]
+        cur_number = self.cur_choice - 1
+        cur_doc = self.total_list[cur_number]
         if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
             doc_type = 'Федеральный конституционный закон'
         elif cur_doc['DocumentTypeName'] == 'Федеральный закон':
