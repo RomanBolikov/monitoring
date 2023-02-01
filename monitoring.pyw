@@ -161,16 +161,12 @@ class App(tk.Tk):
         )
         self.form_chckbtn.grid(row=5, column=0, padx=5, pady=(10, 5))
 
-        # ярлык и поле листов приложения
-        append_label = ttk.Label(
-            mainframe, text='Листов\nприложения:', justify='center'
+        # ярлык текущих загрузок
+        self.downloads = tk.StringVar()
+        downloads_label = ttk.Label(
+            mainframe, justify='center', textvariable=self.downloads
         )
-        append_label.grid(row=6, column=0, padx=5)
-        self.appendix = tk.StringVar()
-        self.appendix_entry = ttk.Entry(
-            mainframe, state='disabled', width=4, textvariable=self.appendix
-        )
-        self.appendix_entry.grid(row=7, column=0, padx=5, pady=(5, 0))
+        downloads_label.grid(row=6, column=0, padx=5)
 
         # окно выбора адресата
         namevar = tk.StringVar(
@@ -219,8 +215,6 @@ class App(tk.Tk):
         text = cur_doc['ComplexName'].replace('\n', '')
         file_length = cur_doc['PdfFileLength'] // 1024
         self.npa_title.set(textwrap.fill(text))
-        self.appendix_entry.delete(0, tk.END)
-        self.appendix_entry['state'] = 'disabled'
         if self.call_form_doc.winfo_ismapped():
             self.call_form_doc.grid_forget()
             self.delete_pdf.grid(row=4, column=2, padx=5, pady=(10, 15))
@@ -276,7 +270,9 @@ class App(tk.Tk):
     def start_thread(self):
         self.load_pdf.configure(state='disabled')
         threading.Thread(target=self.get_pdf, daemon=True).start()
-        self.thread_count.increment_and_get()
+        downloads = self.thread_count.increment_and_get()
+        with threading.Lock():
+            self.downloads.set("Загружается: " + str(downloads))
 
     # загрузка файла PDF
     def get_pdf(self):
@@ -314,7 +310,9 @@ class App(tk.Tk):
             )
         self.total_list[cur_number]['pdf_loaded'] = True
         subprocess.Popen(args=[self.readerpath, Path(self.path, savename)])
-        self.thread_count.decrement_and_get()
+        downloads = self.thread_count.decrement_and_get()
+        with threading.Lock():
+            self.downloads.set("Загружается: " + str(downloads))
 
     # удаление файла PDF (кнопка "Удалить PDF")
     def delete_pdf(self):
@@ -331,30 +329,17 @@ class App(tk.Tk):
         )
         self.delete_pdf['state'] = 'disabled'
         self.form_chckbtn['state'] = 'disabled'
-        self.appendix_entry['state'] = 'disabled'
 
     # включение возможности формирования документа
     # (галочка "Сформировать документ")
     def enable(self):
         if self.form_var.get() == 1:
             self.addr_listbox['state'] = 'normal'
-            self.appendix_entry['state'] = '!disabled'
-            reqs = self.pdf_requisites(
-                self.total_list[self.cur_choice - 1]
-            )
-            openname = f'{reqs[1]} {reqs[2]}.pdf'
-            openpath = Path(self.path, openname)
-            with open(openpath, 'rb') as file_in:
-                pdf = PdfFileReader(file_in)
-                pages = str(pdf.getNumPages())
-                self.appendix_entry.insert(0, pages)
             self.delete_pdf.grid_forget()
             self.call_form_doc.grid(row=4, column=2, padx=5, pady=(10, 15))
         elif self.form_var.get() == 0:
             self.addr_listbox.selection_clear(0, tk.END)
             self.addr_listbox['state'] = 'disabled'
-            self.appendix_entry.delete(0, tk.END)
-            self.appendix_entry['state'] = 'disabled'
             self.call_form_doc.grid_forget()
             self.delete_pdf.grid(row=4, column=2, padx=5, pady=(10, 15))
 
@@ -380,10 +365,6 @@ class App(tk.Tk):
     def send(self):
         if not self.addr_listbox.curselection():
             return mb.showerror('Ошибка', 'Выберите адресата')
-        if self.appendix.get() == '':
-            return mb.showerror(
-                'Ошибка', 'Укажите количество листов приложения'
-            )
         cur_number = self.cur_choice - 1
         cur_doc = self.total_list[cur_number]
         if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
@@ -418,7 +399,12 @@ class App(tk.Tk):
         doc_date = cur_doc['DocumentDate']
         doc_date_frmtd = f'{doc_date[8:10]}.{doc_date[5:7]}.{doc_date[:4]}'
         doc_num = cur_doc['Number']
-
+        reqs = self.pdf_requisites(cur_doc)
+        openname = f'{reqs[1]} {reqs[2]}.pdf'
+        openpath = Path(self.path, openname)
+        with open(openpath, 'rb') as file_in:
+            pdf = PdfFileReader(file_in)
+            pages = str(pdf.getNumPages())
         return form_doc.form_doc(
             addressees=[persons.Person.namelist[i] for i
                         in self.addr_listbox.curselection()],
@@ -427,7 +413,7 @@ class App(tk.Tk):
             npa_date=doc_date_frmtd,
             npa_num=doc_num,
             publ_date=self.date,
-            app_sheets=self.appendix.get()
+            app_sheets=pages
         )
 
     # удаление пустого каталога при закрытии окна программы или смене даты
