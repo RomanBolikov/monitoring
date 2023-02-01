@@ -1,6 +1,6 @@
 from pathlib import Path
+from subprocess import Popen
 import docx
-import subprocess
 
 
 def form_doc(
@@ -100,7 +100,7 @@ def form_doc(
 {current_npa_type["short_type"]} {npa_num}.docx'
         )
     doc.save(Path('C:/Боликов Р.А/Внутренние документы/Коллегам', savename))
-    subprocess.Popen(
+    Popen(
         [Path('C:/Боликов Р.А/Внутренние документы/Коллегам', savename)],
         shell=True
     )

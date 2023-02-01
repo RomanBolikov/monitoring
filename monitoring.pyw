@@ -4,10 +4,10 @@ from tkcalendar import DateEntry
 from pathlib import Path
 from websearch import Request
 from PyPDF2 import PdfFileReader
+from subprocess import Popen
 import persons
 import form_doc
 import requests
-import subprocess
 import textwrap
 import threading
 from atomicinteger import AtomicInteger
@@ -309,7 +309,7 @@ class App(tk.Tk):
                 text=f'Просмотрено документов: {self.opened_docs.value}'
             )
         self.total_list[cur_number]['pdf_loaded'] = True
-        subprocess.Popen(args=[self.readerpath, Path(self.path, savename)])
+        Popen(args=[self.readerpath, Path(self.path, savename)])
         downloads = self.thread_count.decrement_and_get()
         with threading.Lock():
             self.downloads.set("Загружается: " + str(downloads))

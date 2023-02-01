@@ -81,7 +81,7 @@ class Request:
 
 if __name__ == '__main__':
     req = Request('19.12.2022')
-    res = req.total_list()
+    res = None
     while res is None:
         res = req.total_list()
     print(res)

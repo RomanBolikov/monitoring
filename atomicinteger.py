@@ -1,10 +1,10 @@
-import threading
+from threading import Lock
 
 
 class AtomicInteger():
     def __init__(self, value=0):
         self._value = int(value)
-        self._lock = threading.Lock()
+        self._lock = Lock()
 
     def increment_and_get(self):
         with self._lock:
