@@ -1,5 +1,6 @@
 {
-    "main_folder" : "C:\\Users\\rabolikov\\Desktop\\Monitoring",
-    "templates_folder": "",
-    "generated_docs_folder": ""
+    "main_folder": "C:/Users/rabolikov/Desktop",
+    "templates_folder": null,
+    "readerpath": "C:/Program Files/SumatraPDF/SumatraPDF.exe",
+    "generated_docs_folder": null
 }

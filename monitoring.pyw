@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, font, messagebox as mb
+from tkinter import ttk, filedialog as fd, font, messagebox as mb
 from tkcalendar import DateEntry
 from pathlib import Path
 from websearch import Request
 from PyPDF2 import PdfFileReader
 from subprocess import Popen
+import json
 import persons
 import form_doc
 import requests
@@ -20,13 +21,34 @@ class App(tk.Tk):
         f = font.nametofont('TkDefaultFont')
         f.configure(size=11)
         s = ttk.Style()
-        s. configure('My.TButton', justify='center')
+        s.configure('My.TButton', justify='center')
         self.protocol('WM_DELETE_WINDOW', self.quit)
         self.initUI()
         self.date = None
         self.path = None
         self.opened_docs = AtomicInteger(0)
-        self.readerpath = Path(r'C:\Program Files\SumatraPDF\SumatraPDF.exe')
+        with open('config.json', 'r+') as config:
+            data = json.load(config)
+            existing_path = data.get('readerpath')
+            if existing_path is not None:
+                self.readerpath = Path(existing_path)
+            else:
+                mb.showinfo(
+                    'Выбор программы', 'Выберите расположение программы для \
+чтения файлов формата .pdf'
+                )
+                path = fd.askopenfilename(
+                    defaultextension=".exe", initialdir='C:\\Program Files'
+                )
+                if path is not None:
+                    self.readerpath = Path(path)
+                else:
+                    mb.showinfo('Выбор программы', 'Программа не выбрана!')
+                    self.destroy()
+                data['readerpath'] = path
+                config.seek(0)
+                json.dump(data, config)
+                config.truncate()
         self.thread_count = AtomicInteger(0)
         self.prompt_date()
 
@@ -61,8 +83,33 @@ class App(tk.Tk):
                 )
                 self.cur_choice = 1
                 self.prev_btn['state'] = 'disabled'
-                self.path = Path(
-                    Path.home(), 'Desktop', 'Monitoring', f'{self.date}')
+                with open('config.json', 'r+') as config:
+                    data = json.load(config)
+                    existing_path = data.get('main_folder')
+                    if existing_path is not None:
+                        self.path = Path(
+                            existing_path, 'Monitoring', f'{self.date}'
+                        )
+                    else:
+                        mb.showinfo(
+                            'Выбор расположения каталога',
+                            'Выберите расположение каталога для сохранения \
+файлов')
+                        path = fd.askdirectory(
+                            initialdir='C:\\Program Files'
+                        )
+                        if path is not None:
+                            Path(path, 'Monitoring').mkdir(exist_ok=True)
+                            self.path = Path(
+                                path, 'Monitoring', f'{self.date}'
+                            )
+                        else:
+                            mb.showinfo('Выбор каталога', 'Каталог не выбран!')
+                            self.destroy()
+                        data['main_folder'] = path
+                        config.seek(0)
+                        json.dump(data, config)
+                        config.truncate()
                 self.path.mkdir(exist_ok=True)
                 prompt.destroy()
                 self.total_label_text.set(
