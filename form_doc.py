@@ -1,6 +1,8 @@
 from pathlib import Path
 from subprocess import Popen
+from tkinter import filedialog as fd, messagebox as mb
 import docx
+import json
 
 
 def form_doc(
@@ -60,7 +62,7 @@ def form_doc(
         }
     }
     current_npa_type = NPA_DATA[npa_type]
-    doc = docx.Document(Path('C:/Боликов Р.А/Шаблоны/doc_template.docx'))
+    doc = docx.Document(Path('doc_template.docx'))
     table = doc.tables[0]
     address = table.cell(0, 2)
     title = table.cell(1, 0)
@@ -99,8 +101,28 @@ def form_doc(
             f'{", ".join([elem.name_with_initials for elem in addressees])} \
 {current_npa_type["short_type"]} {npa_num}.docx'
         )
-    doc.save(Path('C:/Боликов Р.А/Внутренние документы/Коллегам', savename))
-    Popen(
-        [Path('C:/Боликов Р.А/Внутренние документы/Коллегам', savename)],
-        shell=True
-    )
+    with open('config.json', 'r+') as config:
+        data = json.load(config)
+        existing_path = data.get('generated_docs_folder')
+        if existing_path is not None:
+            savepath = Path(existing_path)
+        else:
+            savepath = None
+            while savepath is None:
+                mb.showinfo(
+                    'Выбор папки', 'Выберите расположение папки для сохранения \
+файлов служебных записок'
+                )
+                savepath = fd.askdirectory()
+            data['generated_docs_folder'] = savepath
+            config.seek(0)
+            json.dump(data, config)
+            config.truncate()
+    doc.save(Path(savepath, savename))
+    Popen([Path(savepath, savename)], shell=True)
+
+
+if __name__ == '__main__':
+    doc = docx.Document(Path('doc_template.docx'))
+    exclamation = doc.paragraphs[1]
+    print(exclamation.text)
