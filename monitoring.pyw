@@ -27,7 +27,8 @@ class App(tk.Tk):
         self.date = None
         self.path = None
         self.opened_docs = AtomicInteger(0)
-        with open('config.json', 'r+') as config:
+        config_path = Path(__file__).with_name('config.json')
+        with config_path.open('r+') as config:
             data = json.load(config)
             existing_path = data.get('readerpath')
             if existing_path is not None:
@@ -83,7 +84,8 @@ class App(tk.Tk):
                 )
                 self.cur_choice = 1
                 self.prev_btn['state'] = 'disabled'
-                with open('config.json', 'r+') as config:
+                config_path = Path(__file__).with_name('config.json')
+                with config_path.open('r+') as config:
                     data = json.load(config)
                     existing_path = data.get('main_folder')
                     if existing_path is not None:

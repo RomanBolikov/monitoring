@@ -62,7 +62,8 @@ def form_doc(
         }
     }
     current_npa_type = NPA_DATA[npa_type]
-    doc = docx.Document(Path('doc_template.docx'))
+    doc_path = Path(__file__).with_name('doc_template.docx')
+    doc = docx.Document(doc_path)
     table = doc.tables[0]
     address = table.cell(0, 2)
     title = table.cell(1, 0)
@@ -101,7 +102,8 @@ def form_doc(
             f'{", ".join([elem.name_with_initials for elem in addressees])} \
 {current_npa_type["short_type"]} {npa_num}.docx'
         )
-    with open('config.json', 'r+') as config:
+    config_path = Path(__file__).with_name('config.json')
+    with config_path.open('r+') as config:
         data = json.load(config)
         existing_path = data.get('generated_docs_folder')
         if existing_path is not None:
