@@ -301,11 +301,7 @@ class App(tk.Tk):
         elif cur_doc['DocumentTypeName'] == 'Распоряжение':
             doc_type = 'РПРФ'
         elif cur_doc['DocumentTypeName'] == 'Определение':
-            if cur_doc['SignatoryAuthorityName'] == 'Правительство Российской \
-Федерации':
-                doc_type = 'РПРФ'
-            else:
-                doc_type = 'Опр. КС РФ'
+            doc_type = 'Опр. КС РФ'
         if cur_doc['SignatoryAuthorityName'] == 'Министерство строительства и \
 жилищно-коммунального хозяйства Российской Федерации':
             doc_type = 'Приказ Минстроя'
