@@ -58,67 +58,6 @@ class App(tk.Tk):
     # всплывающее окно с запросом даты
     def prompt_date(self):
 
-        def choose_date():
-            self.deletedir()
-            self.total_list = None
-            self.date = npa_date_entry.get()
-            self.docs = Request(self.date)
-            self.total_list = self.docs.total_list()
-            while self.total_list is None:
-                if mb.askretrycancel(
-                    'Ошибка', 'Сервер недоступен, повторить запрос?'
-                ):
-                    self.total_list = self.docs.total_list()
-                else:
-                    return self.destroy()
-            self.docs_num = len(self.total_list)
-            if self.docs_num == 0:
-                mb.showinfo(
-                    message=f'Документы за {self.date} не опубликованы!'
-                )
-                prompt.destroy()
-                self.prompt_date()
-            else:
-                self.next_btn['state'] = (
-                    'disabled' if self.docs_num == 1 else '!disabled'
-                )
-                self.cur_choice = 1
-                self.prev_btn['state'] = 'disabled'
-                config_path = Path(__file__).with_name('config.json')
-                with config_path.open('r+') as config:
-                    data = json.load(config)
-                    existing_path = data.get('main_folder')
-                    if existing_path is not None:
-                        self.path = Path(
-                            existing_path, 'Monitoring', f'{self.date}'
-                        )
-                    else:
-                        mb.showinfo(
-                            'Выбор расположения каталога',
-                            'Выберите расположение каталога для сохранения \
-файлов')
-                        path = fd.askdirectory(
-                            initialdir='C:\\Program Files'
-                        )
-                        if path is not None:
-                            Path(path, 'Monitoring').mkdir(exist_ok=True)
-                            self.path = Path(
-                                path, 'Monitoring', f'{self.date}'
-                            )
-                        else:
-                            mb.showinfo('Выбор каталога', 'Каталог не выбран!')
-                            self.destroy()
-                        data['main_folder'] = path
-                        config.seek(0)
-                        json.dump(data, config)
-                        config.truncate()
-                self.path.mkdir(exist_ok=True)
-                prompt.destroy()
-                self.total_label_text.set(
-                    f'Всего документов за {self.date}: {self.docs_num}'
-                )
-                self.show_doc()
-
         # нельзя сменить дату, пока не завершены все загрузки
         if self.thread_count.value > 0:
             return mb.showwarning(
@@ -127,24 +66,88 @@ class App(tk.Tk):
             )
 
         # загрузка виджетов всплывающего окна
-        prompt = tk.Toplevel()
-        prompt.attributes('-topmost', 'true')
+        self.prompt = tk.Toplevel()
+        self.prompt.attributes('-topmost', 'true')
         x = self.winfo_x()
         y = self.winfo_y()
-        prompt.geometry("250x150+%d+%d" % (x + 200, y + 100))
-        prompt.protocol('WM_DELETE_WINDOW', lambda: self.destroy())
+        self.prompt.geometry("250x150+%d+%d" % (x + 200, y + 100))
+        self.prompt.protocol('WM_DELETE_WINDOW', lambda: self.destroy())
 
-        label = ttk.Label(prompt, text='Выберите дату: \n', justify='center')
+        label = ttk.Label(
+            self.prompt, text='Выберите дату: \n', justify='center')
         label.pack(side='top', pady=10)
 
-        npa_date_entry = DateEntry(prompt, date_pattern='dd.mm.y')
-        npa_date_entry.pack(pady=(0, 10))
-        npa_date_entry.delete(0, tk.END)
+        self.npa_date_entry = DateEntry(self.prompt, date_pattern='dd.mm.y')
+        self.npa_date_entry.pack(pady=(0, 10))
+        self.npa_date_entry.delete(0, tk.END)
 
         choose_date = ttk.Button(
-            prompt, text='Выбрать', command=choose_date
+            self.prompt, text='Выбрать', command=self.choose_date
         )
         choose_date.pack(pady=(0, 10))
+
+    # выбор даты по нажатию кнопки "Выбрать"
+    def choose_date(self):
+        self.deletedir()
+        self.total_list = None
+        self.date = self.npa_date_entry.get()
+        self.docs = Request(self.date)
+        self.total_list = self.docs.total_list()
+        while self.total_list is None:
+            if mb.askretrycancel(
+                'Ошибка', 'Сервер недоступен, повторить запрос?'
+            ):
+                self.total_list = self.docs.total_list()
+            else:
+                self.prompt.destroy()
+                return self.prompt_date()
+        self.docs_num = len(self.total_list)
+        if self.docs_num == 0:
+            mb.showinfo(
+                message=f'Документы за {self.date} не опубликованы!'
+            )
+            self.prompt.destroy()
+            return self.prompt_date()
+        else:
+            self.next_btn['state'] = (
+                'disabled' if self.docs_num == 1 else '!disabled'
+            )
+            self.cur_choice = 1
+            self.prev_btn['state'] = 'disabled'
+            config_path = Path(__file__).with_name('config.json')
+            with config_path.open('r+') as config:
+                data = json.load(config)
+                existing_path = data.get('main_folder')
+                if existing_path is not None:
+                    self.path = Path(
+                        existing_path, 'Monitoring', f'{self.date}'
+                    )
+                else:
+                    mb.showinfo(
+                        'Выбор расположения каталога',
+                        'Выберите расположение каталога для сохранения \
+файлов')
+                    path = fd.askdirectory(
+                        initialdir='C:\\Program Files'
+                    )
+                    if path is not None:
+                        Path(path, 'Monitoring').mkdir(exist_ok=True)
+                        self.path = Path(
+                            path, 'Monitoring', f'{self.date}'
+                        )
+                    else:
+                        mb.showinfo('Выбор каталога', 'Каталог не выбран!')
+                        self.destroy()
+                    data['main_folder'] = path
+                    config.seek(0)
+                    json.dump(data, config)
+                    config.truncate()
+            self.path.mkdir(exist_ok=True)
+            self.prompt.destroy()
+            self.total_label_text.set(
+                f'Всего документов за {self.date}: {self.docs_num}'
+            )
+            self.show_doc()
     #########################################################################
 
     # основной интерфейс

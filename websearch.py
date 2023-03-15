@@ -1,4 +1,5 @@
 import requests
+import concurrent.futures._base
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -63,25 +64,33 @@ class Request:
                 'http://publication.pravo.gov.ru/api/Document/Get',
                 params=parameters, timeout=(0.5, 1)
             )
+            return res.json()['Documents']
         except (
             requests.exceptions.Timeout, requests.exceptions.ConnectionError
         ):
             return -1
-        return res.json()['Documents']
 
     def total_list(self):
         out = []
-        with ThreadPoolExecutor(max_workers=8) as exec:
-            for result in exec.map(self.response, self.params):
-                if result == -1:
+        exec = ThreadPoolExecutor(max_workers=8)
+        results = exec.map(self.response, self.params, timeout=3)
+        try:
+            for r in results:
+                if r == -1:
+                    exec.shutdown(wait=False, cancel_futures=True)
                     return None
-                out.extend(result)
+                out.extend(r)
+            exec.shutdown()
             return out
+        except concurrent.futures._base.TimeoutError:
+            exec.shutdown(wait=False, cancel_futures=True)
+            return None
 
 
 if __name__ == '__main__':
-    req = Request('19.12.2022')
-    res = None
-    while res is None:
-        res = req.total_list()
-    print(res)
+    req = Request('05.03.2023')
+    res = req.total_list()
+    if res is None:
+        print("An exception has been raised")
+    else:
+        print(res[0] if len(res) > 0 else 'empty')
