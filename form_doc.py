@@ -109,13 +109,15 @@ def form_doc(
         if existing_path is not None:
             savepath = Path(existing_path)
         else:
-            savepath = None
-            while savepath is None:
-                mb.showinfo(
-                    'Выбор папки', 'Выберите расположение папки для сохранения \
+            mb.showinfo(
+                'Выбор папки', 'Выберите расположение папки для сохранения \
 файлов служебных записок'
-                )
-                savepath = fd.askdirectory()
+            )
+            savepath = fd.askdirectory()
+            if savepath == '':
+                return mb.showerror(
+                    'Выбор папки', 'Папка не выбрана, сохранение документа \
+невозможно')
             data['generated_docs_folder'] = savepath
             config.seek(0)
             json.dump(data, config)

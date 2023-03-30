@@ -305,6 +305,10 @@ class App(tk.Tk):
             doc_type = 'РПРФ'
         elif cur_doc['DocumentTypeName'] == 'Определение':
             doc_type = 'Опр. КС РФ'
+        elif (cur_doc['DocumentTypeName'] == 'Решение' and
+                cur_doc['SignatoryAuthorityName'] == "Конституционный суд \
+Российской Федерации"):
+            doc_type = 'Решение КС РФ'
         if cur_doc['SignatoryAuthorityName'] == 'Министерство строительства и \
 жилищно-коммунального хозяйства Российской Федерации':
             doc_type = 'Приказ Минстроя'
@@ -441,8 +445,7 @@ class App(tk.Tk):
 жилищно-коммунального хозяйства Российской Федерации'
         elif cur_doc['SignatoryAuthorityName'] == 'Министерство финансов \
 Российской Федерации':
-            doc_type = 'приказ Министерства финансов \
-Российской Федерации'
+            doc_type = 'приказ Министерства финансов Российской Федерации'
         doc_title = cur_doc['Name']
         doc_date = cur_doc['DocumentDate']
         doc_date_frmtd = f'{doc_date[8:10]}.{doc_date[5:7]}.{doc_date[:4]}'
