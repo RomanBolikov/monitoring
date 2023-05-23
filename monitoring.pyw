@@ -3,11 +3,12 @@ from tkinter import ttk, filedialog as fd, font, messagebox as mb
 from tkcalendar import DateEntry
 from pathlib import Path
 from websearch import Request
-from PyPDF2 import PdfFileReader
 from subprocess import Popen
+from doctypes import DOC_TYPES
 import json
 import persons
 import form_doc
+import re
 import requests
 import textwrap
 import threading
@@ -264,8 +265,8 @@ class App(tk.Tk):
             f'Документ {self.cur_choice} из {self.docs_num}:'
         )
         cur_doc = self.total_list[self.cur_choice - 1]
-        text = cur_doc['ComplexName'].replace('\n', '')
-        file_length = cur_doc['PdfFileLength'] // 1024
+        text = cur_doc['complexName'].replace('\n', '')
+        file_length = cur_doc['pdfFileLength'] // 1024
         self.npa_title.set(textwrap.fill(text))
         if self.call_form_doc.winfo_ismapped():
             self.call_form_doc.grid_forget()
@@ -287,35 +288,14 @@ class App(tk.Tk):
 
     # формирование реквизитов файла PDF
     def pdf_requisites(self, cur_doc):
-        eonum = cur_doc['EoNumber']
-        doc_num = cur_doc['Number']
-        if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
-            doc_type = 'ФКЗ'
-        elif cur_doc['DocumentTypeName'] == 'Федеральный закон':
-            doc_type = 'ФЗ'
-        elif cur_doc['DocumentTypeName'] == 'Указ':
-            doc_type = 'Указ'
-        elif cur_doc['DocumentTypeName'] == 'Постановление':
-            if cur_doc['SignatoryAuthorityName'] == 'Правительство Российской \
-Федерации':
-                doc_type = 'ППРФ'
-            else:
-                doc_type = 'Пост. КС РФ'
-        elif cur_doc['DocumentTypeName'] == 'Распоряжение':
-            doc_type = 'РПРФ'
-        elif cur_doc['DocumentTypeName'] == 'Определение':
-            doc_type = 'Опр. КС РФ'
-        elif (cur_doc['DocumentTypeName'] == 'Решение' and
-                cur_doc['SignatoryAuthorityName'] == "Конституционный суд \
-Российской Федерации"):
-            doc_type = 'Решение КС РФ'
-        if cur_doc['SignatoryAuthorityName'] == 'Министерство строительства и \
-жилищно-коммунального хозяйства Российской Федерации':
-            doc_type = 'Приказ Минстроя'
+        eonum = cur_doc['eoNumber']
+        doc_num = re.search(r'№ \d+(-р|/пр|н|-О|-П|-О-П|-О-О)?',
+                            cur_doc['complexName']).group()
+        for key, value in DOC_TYPES.items():
+            if re.match(key, cur_doc['complexName']):
+                doc_type = value
+        if doc_num[-3] == '/':
             doc_num = doc_num[:-3]+'_пр'
-        elif cur_doc['SignatoryAuthorityName'] == 'Министерство финансов \
-Российской Федерации':
-            doc_type = 'Приказ Минфина'
         return (eonum, doc_type, doc_num)
 
     # старт нового потока (кнопка "Загрузить PDF")
@@ -331,13 +311,13 @@ class App(tk.Tk):
         cur_number = self.cur_choice - 1
         cur_doc = self.total_list[cur_number]
         reqs = self.pdf_requisites(cur_doc)
-        file_length = cur_doc['PdfFileLength'] // 1024
+        file_length = cur_doc['pdfFileLength'] // 1024
         savename = f'{reqs[1]} {reqs[2]}.pdf'
         pdf = open(Path(self.path, savename), 'wb')
         try:
             url = requests.get(
-                f'http://publication.pravo.gov.ru/File/GetFile/{reqs[0]}\
-?type=pdf', timeout=(3, 15)
+              f'http://publication.pravo.gov.ru/file/pdf/?eoNumber={reqs[0]}',
+              timeout=(3, 15)
             )
         except (
             requests.exceptions.Timeout, requests.exceptions.ConnectionError
@@ -375,7 +355,7 @@ class App(tk.Tk):
         deletepath = Path(self.path, deletename)
         deletepath.unlink(missing_ok=True)
         self.total_list[cur_number]['pdf_loaded'] = False
-        file_length = cur_doc['PdfFileLength'] // 1024
+        file_length = cur_doc['pdfFileLength'] // 1024
         self.load_pdf.configure(
             state='!disabled', text=f'Загрузить PDF\n({file_length} Кб)'
         )
@@ -419,49 +399,20 @@ class App(tk.Tk):
             return mb.showerror('Ошибка', 'Выберите адресата')
         cur_number = self.cur_choice - 1
         cur_doc = self.total_list[cur_number]
-        if cur_doc['DocumentTypeName'] == 'Федеральный конституционный закон':
-            doc_type = 'Федеральный конституционный закон'
-        elif cur_doc['DocumentTypeName'] == 'Федеральный закон':
-            doc_type = 'Федеральный закон'
-        elif cur_doc['DocumentTypeName'] == 'Указ':
-            doc_type = 'Указ Президента Российской Федерации'
-        elif (cur_doc['DocumentTypeName'] == 'Постановление'
-                and cur_doc['SignatoryAuthorityName'] == 'Правительство \
-Российской Федерации'):
-            doc_type = 'постановление Правительства Российской Федерации'
-        elif cur_doc['DocumentTypeName'] == 'Распоряжение':
-            doc_type = 'распоряжение Правительства Российской Федерации'
-        elif cur_doc['SignatoryAuthorityName'] == 'Конституционный Суд \
-Российской Федерации':
-            if cur_doc['DocumentTypeName'] == 'Постановление':
-                doc_type = 'Постановление Конституционного Суда Российской \
-Федерации'
-            else:
-                doc_type = 'Определение Конституционного Суда Российской \
-Федерации'
-        elif cur_doc['SignatoryAuthorityName'] == 'Министерство строительства \
-и жилищно-коммунального хозяйства Российской Федерации':
-            doc_type = 'приказ Министерства строительства и \
-жилищно-коммунального хозяйства Российской Федерации'
-        elif cur_doc['SignatoryAuthorityName'] == 'Министерство финансов \
-Российской Федерации':
-            doc_type = 'приказ Министерства финансов Российской Федерации'
-        doc_title = cur_doc['Name']
-        doc_date = cur_doc['DocumentDate']
-        doc_date_frmtd = f'{doc_date[8:10]}.{doc_date[5:7]}.{doc_date[:4]}'
-        doc_num = cur_doc['Number']
-        reqs = self.pdf_requisites(cur_doc)
-        openname = f'{reqs[1]} {reqs[2]}.pdf'
-        openpath = Path(self.path, openname)
-        with open(openpath, 'rb') as file_in:
-            pdf = PdfFileReader(file_in)
-            pages = str(pdf.getNumPages())
+        for key, value in DOC_TYPES.items():
+            if re.match(key, cur_doc['complexName']):
+                doc_type = value
+        doc_date = re.search(r'\d{2}\.\d{2}\.\d{4}',
+                             cur_doc['complexName']).group()
+        doc_num = re.search(r'№ \d+(-р|/пр|н|-О|-П|-О-П|-О-О)?',
+                            cur_doc['complexName']).group()
+        pages = str(cur_doc['pagesCount'])
         return form_doc.form_doc(
             addressees=[persons.Person.namelist[i] for i
                         in self.addr_listbox.curselection()],
             npa_type=doc_type,
-            npa_title=doc_title,
-            npa_date=doc_date_frmtd,
+            npa_title=cur_doc['complexName'].replace('\n', ''),
+            npa_date=doc_date,
             npa_num=doc_num,
             publ_date=self.date,
             app_sheets=pages
