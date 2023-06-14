@@ -289,7 +289,7 @@ class App(tk.Tk):
     # формирование реквизитов файла PDF
     def pdf_requisites(self, cur_doc):
         eonum = cur_doc['eoNumber']
-        doc_num = re.search(r'№ \d+(-р|/пр|н|-О|-П|-О-П|-О-О)?',
+        doc_num = re.search(r'№ \d+(-ФКЗ|-ФЗ|-р|/пр|н|-О|-П|-О-П|-О-О)?',
                             cur_doc['complexName']).group()
         for key, value in DOC_TYPES.items():
             if re.match(key, cur_doc['complexName']):
