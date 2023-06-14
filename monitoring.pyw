@@ -404,7 +404,7 @@ class App(tk.Tk):
                 doc_type = value
         doc_date = re.search(r'\d{2}\.\d{2}\.\d{4}',
                              cur_doc['complexName']).group()
-        doc_num = re.search(r'№ \d+(-р|/пр|н|-О|-П|-О-П|-О-О)?',
+        doc_num = re.search(r'№ \d+(-ФКЗ|-ФЗ|-р|/пр|н|-О|-П|-О-П|-О-О)?',
                             cur_doc['complexName']).group()
         pages = str(cur_doc['pagesCount'])
         return form_doc.form_doc(
